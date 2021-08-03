@@ -16,7 +16,7 @@
 
 package io.jmix.autoconfigure.email;
 
-import io.jmix.autoconfigure.email.job.EmailSendingJob;
+import io.jmix.autoconfigure.email.job.EmailCleaningJob;
 import io.jmix.email.EmailConfiguration;
 import io.jmix.email.EmailerProperties;
 import org.quartz.*;
@@ -32,29 +32,28 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import(EmailConfiguration.class)
 @ConditionalOnClass(Job.class)
-@ConditionalOnProperty(name = "jmix.email.useDefaultQuartzSendingConfiguration", matchIfMissing = true)
-public class EmailSendingScheduleAutoConfiguration {
-
+@ConditionalOnProperty(name = "jmix.email.useDefaultQuartzCleaningConfiguration", matchIfMissing = true)
+public class EmailCleaningScheduleAutoConfiguration {
     private static final Logger log = LoggerFactory.getLogger(EmailSendingScheduleAutoConfiguration.class);
 
     @Autowired
     private EmailerProperties emailerProperties;
 
-    @Bean("email_EmailSendingJob")
-    JobDetail emailSendingJob() {
+    @Bean("email_EmailCleaningJob")
+    JobDetail emailCleaningJob() {
         return JobBuilder.newJob()
-                .ofType(EmailSendingJob.class)
+                .ofType(EmailCleaningJob.class)
                 .storeDurably()
-                .withIdentity("emailSending")
+                .withIdentity("emailCleaning")
                 .build();
     }
 
-    @Bean("email_EmailSendingTrigger")
-    Trigger emailSendingTrigger() {
-        String cron = emailerProperties.getEmailSendingCron();
-        log.info("Schedule Email Sending using default configuration with CRON expression '{}'", cron);
+    @Bean("email_EmailCleaningTrigger")
+    Trigger emailCleaningTrigger() {
+        String cron = emailerProperties.getEmailCleaningCron();
+        log.info("Schedule Email Cleaning using default configuration with CRON expression '{}'", cron);
         return TriggerBuilder.newTrigger()
-                .forJob(emailSendingJob())
+                .forJob(emailCleaningJob())
                 .startNow()
                 .withSchedule(CronScheduleBuilder.cronSchedule(cron))
                 .build();

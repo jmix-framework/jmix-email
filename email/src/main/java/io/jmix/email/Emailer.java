@@ -42,7 +42,8 @@ public interface Emailer {
      * @throws EmailException
      *          in case of any errors
      */
-    void sendEmail(String address, String subject, String body, String bodyContentType, EmailAttachment... attachment)
+    void sendEmail(String address, String subject, String body, String bodyContentType, Boolean important,
+                   EmailAttachment... attachment)
             throws EmailException;
 
     /**
@@ -86,4 +87,10 @@ public interface Emailer {
      * @return short message describing how many emails were sent, or error message
      */
     String processQueuedEmails();
+
+    /**
+     * Deletes old emails and attachments.
+     * For additional information see {@link EmailCleaner}
+     */
+    Integer deleteOldEmails();
 }

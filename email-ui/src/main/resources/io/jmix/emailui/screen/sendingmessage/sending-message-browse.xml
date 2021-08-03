@@ -49,6 +49,7 @@
                         <action id="resendEmail" caption="msg://resendEmail" trackSelection="true"/>
                     </actions>
                     <columns>
+                        <column id="important"/>
                         <column id="address" sortable="false"/>
                         <column id="cc"/>
                         <column id="bcc"/>
@@ -89,6 +90,7 @@
                     <form id="fg" dataContainer="sendingMessageDc" editable="false"
                           width="100%">
                         <column width="100%">
+                            <field id="important" property="important"/>
                             <field id="address" property="address"/>
                             <field id="cc" property="cc"/>
                             <field id="bcc" property="bcc"/>

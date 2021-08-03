@@ -21,7 +21,12 @@ import io.jmix.email.entity.SendingMessage;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
+
+@Validated
 @ConfigurationProperties(prefix = "jmix.email")
 @ConstructorBinding
 public class EmailerProperties {
@@ -35,8 +40,14 @@ public class EmailerProperties {
     boolean sendAllToAdmin;
     boolean useFileStorage;
     String asyncSendingUsername;
-    String useDefaultQuartzConfiguration;
+    String useDefaultQuartzSendingConfiguration;
     String emailSendingCron;
+    String useDefaultQuartzCleaningConfiguration;
+    @PositiveOrZero
+    int maxAgeOfImportantMessages;
+    @Positive
+    int maxAgeOfNonImportantMessages;
+    String emailCleaningCron;
 
     public EmailerProperties(@DefaultValue("DoNotReply@localhost") String fromAddress,
                              @DefaultValue("2") int scheduledSendingDelayCallCount,
@@ -47,7 +58,10 @@ public class EmailerProperties {
                              @DefaultValue("false") boolean sendAllToAdmin,
                              @DefaultValue("false") boolean useFileStorage,
                              @DefaultValue("admin") String asyncSendingUsername,
-                             @DefaultValue("0 * * * * ?") String emailSendingCron) {
+                             @DefaultValue("0 * * * * ?") String emailSendingCron,
+                             @DefaultValue("365") int maxAgeOfImportantMessages,
+                             @DefaultValue("90") int maxAgeOfNonImportantMessages,
+                             @DefaultValue("0 * * * * ?") String emailCleaningCron) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
         this.messageQueueCapacity = messageQueueCapacity;
@@ -58,6 +72,9 @@ public class EmailerProperties {
         this.useFileStorage = useFileStorage;
         this.asyncSendingUsername = asyncSendingUsername;
         this.emailSendingCron = emailSendingCron;
+        this.maxAgeOfImportantMessages = maxAgeOfImportantMessages;
+        this.maxAgeOfNonImportantMessages = maxAgeOfNonImportantMessages;
+        this.emailCleaningCron = emailCleaningCron;
     }
 
     /**
@@ -97,7 +114,6 @@ public class EmailerProperties {
     /**
      * Timeout in seconds for message in {@link SendingStatus#SENDING} status
      * to be successfully sent or failed. After this time passes, emailer will try to resend email again.
-     *
      */
     public int getSendingTimeoutSec() {
         return sendingTimeoutSec;
@@ -105,14 +121,12 @@ public class EmailerProperties {
 
     /**
      * All emails go to this address if {@link #isSendAllToAdmin()} ()} is enabled, regardless of actual recipient.
-     *
      */
     public String getAdminAddress() {
         return adminAddress;
     }
 
     /**
-     * 
      * @return true if all email messages go to {@link #getAdminAddress()}.
      */
     public boolean isSendAllToAdmin() {
@@ -124,18 +138,15 @@ public class EmailerProperties {
      * instead of BLOB columns in database.
      * Should be used if application stores lots of emails and/or email attachments.
      *
+     * @return true if email body text and attachments are stored in file storage instead of BLOB columns in database.
      * @see SendingMessage#getContentText()
      * @see SendingAttachment#getContentFile()
-     * 
-     * @return true if email body text and attachments are stored in file storage instead of BLOB columns in database.
-     * 
      */
     public boolean isUseFileStorage() {
         return useFileStorage;
     }
 
     /**
-     * 
      * @return Username used by asynchronous sending mechanism to be able to store information in the database.
      */
     public String getAsyncSendingUsername() {
@@ -143,18 +154,44 @@ public class EmailerProperties {
     }
 
     /**
-     *
      * @return true if default Email Sending quartz scheduling configuration is used. False otherwise
      */
-    public String getUseDefaultQuartzConfiguration() {
-        return useDefaultQuartzConfiguration;
+    public String getUseDefaultQuartzSendingConfiguration() {
+        return useDefaultQuartzSendingConfiguration;
     }
 
     /**
-     *
      * @return CRON expression that is used by default Email Sending quartz scheduling configuration
      */
     public String getEmailSendingCron() {
         return emailSendingCron;
+    }
+
+    /**
+     * @return true if default Email Cleaning quartz scheduling configuration is used. False otherwise
+     */
+    public String getUseDefaultQuartzCleaningConfiguration() {
+        return useDefaultQuartzCleaningConfiguration;
+    }
+
+    /**
+     * @return the maximum age of important messages after which they must be deleted
+     */
+    public int getMaxAgeOfImportantMessages() {
+        return maxAgeOfImportantMessages;
+    }
+
+    /**
+     * @return the maximum age of messages after which they must be deleted
+     */
+    public int getMaxAgeOfNonImportantMessages() {
+        return maxAgeOfNonImportantMessages;
+    }
+
+    /**
+     * @return CRON expression that is used by default Email Cleaning quartz scheduling configuration
+     */
+    public String getEmailCleaningCron() {
+        return emailCleaningCron;
     }
 }
