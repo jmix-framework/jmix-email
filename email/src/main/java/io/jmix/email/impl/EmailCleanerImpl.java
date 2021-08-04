@@ -27,7 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -81,11 +84,14 @@ public class EmailCleanerImpl implements EmailCleaner {
             }
         }
 
-        String queryString = queryStringBuilder.toString();
+        String queryString = queryStringBuilder.toString().trim();
         if (queryString.isEmpty()) {
             return 0;
-        } else {
-            return entityManager.createNativeQuery(queryString).executeUpdate();
         }
+        int result = 0;
+        for (String query : queryString.split(";")) {
+            result += entityManager.createNativeQuery(query).executeUpdate();
+        }
+        return result;
     }
 }
