@@ -41,7 +41,7 @@ public class EmailInfoBuilder {
     private String from;
     private String body;
     private String bodyContentType;
-    private Boolean important;
+    private boolean important;
     private List<EmailAttachment> attachments;
     private List<EmailHeader> headers;
 
@@ -169,7 +169,7 @@ public class EmailInfoBuilder {
     /**
      * @param important from {@link io.jmix.email.entity.SendingMessage}
      */
-    public EmailInfoBuilder setImportant(Boolean important) {
+    public EmailInfoBuilder setImportant(boolean important) {
         this.important = important;
         return this;
     }

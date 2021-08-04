@@ -275,11 +275,6 @@ public class EmailerImpl implements Emailer {
         return resultMessage;
     }
 
-    @Override
-    public Integer deleteOldEmails() {
-        return emailCleaner.deleteOldEmails();
-    }
-
     protected String sendQueuedEmails() {
         List<SendingMessage> messagesToSend = emailDataProvider.loadEmailsToSend();
 

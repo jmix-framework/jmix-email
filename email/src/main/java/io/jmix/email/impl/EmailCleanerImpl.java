@@ -17,6 +17,7 @@
 package io.jmix.email.impl;
 
 import io.jmix.core.Resources;
+import io.jmix.core.TimeSource;
 import io.jmix.data.PersistenceHints;
 import io.jmix.email.EmailCleaner;
 import io.jmix.email.EmailerProperties;
@@ -26,7 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Component("email_EmailCleaner")
@@ -43,6 +45,9 @@ public class EmailCleanerImpl implements EmailCleaner {
     @Autowired
     private Resources resources;
 
+    @Autowired
+    private TimeSource timeSource;
+
     @Transactional
     @Override
     public Integer deleteOldEmails() {
@@ -51,19 +56,36 @@ public class EmailCleanerImpl implements EmailCleaner {
         entityManager.setProperty(PersistenceHints.SOFT_DELETION, false);
 
         StringBuilder queryStringBuilder = new StringBuilder();
-        String sqlScript = Objects.requireNonNull(resources.getResourceAsString(PATH_TO_SQL_SCRIPT));
-        String deleteQueryForNonImportantMessages = sqlScript
-                .replace("{days}", String.valueOf(maxAgeOfNonImportantMessages))
-                .replace("{important}", "false");
-        queryStringBuilder.append(deleteQueryForNonImportantMessages).append("\n");
-
-        if (maxAgeOfImportantMessages != 0) {
-            String deleteQueryForImportantMessages = sqlScript
-                    .replace("{days}", String.valueOf(maxAgeOfImportantMessages))
-                    .replace("{important}", "true");
-            queryStringBuilder.append(deleteQueryForImportantMessages);
+        String nativeDeleteSqlScript = Objects.requireNonNull(resources.getResourceAsString(PATH_TO_SQL_SCRIPT));
+        if (maxAgeOfNonImportantMessages != 0) {
+            List<UUID> ids = entityManager.createQuery("select msg.id from email_SendingMessage msg" +
+                    " where msg.important = false and msg.createTs < :date", UUID.class)
+                    .setParameter("date", Date.from(timeSource.now().minusDays(maxAgeOfNonImportantMessages).toInstant()))
+                    .getResultList();
+            if (!ids.isEmpty()) {
+                String deleteQueryForNonImportantMessages = nativeDeleteSqlScript.replace("{placeHolders}",
+                        ids.stream().map(id -> "'" + id.toString() + "'").collect(Collectors.joining(",")));
+                queryStringBuilder.append(deleteQueryForNonImportantMessages).append("\n");
+            }
         }
 
-        return entityManager.createNativeQuery(queryStringBuilder.toString()).executeUpdate();
+        if (maxAgeOfImportantMessages != 0) {
+            List<UUID> ids = entityManager.createQuery("select msg.id from email_SendingMessage msg" +
+                    " where msg.important = true and msg.createTs < :date", UUID.class)
+                    .setParameter("date", Date.from(timeSource.now().minusDays(maxAgeOfImportantMessages).toInstant()))
+                    .getResultList();
+            if (!ids.isEmpty()) {
+                String deleteQueryForImportantMessages = nativeDeleteSqlScript.replace("{placeHolders}",
+                        ids.stream().map(id -> "'" + id.toString() + "'").collect(Collectors.joining(",")));
+                queryStringBuilder.append(deleteQueryForImportantMessages);
+            }
+        }
+
+        String queryString = queryStringBuilder.toString();
+        if (queryString.isEmpty()) {
+            return 0;
+        } else {
+            return entityManager.createNativeQuery(queryString).executeUpdate();
+        }
     }
 }

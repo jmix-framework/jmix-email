@@ -46,7 +46,7 @@ public class EmailInfo implements Serializable {
     private String from;
     private String body;
     private String bodyContentType;
-    private Boolean important;
+    private boolean important;
     private List<EmailAttachment> attachments;
     private List<EmailHeader> headers;
 
@@ -61,7 +61,7 @@ public class EmailInfo implements Serializable {
               String from,
               String body,
               String bodyContentType,
-              Boolean important,
+              boolean important,
               List<EmailHeader> headers,
               List<EmailAttachment> attachments) {
         this.addresses = addresses;

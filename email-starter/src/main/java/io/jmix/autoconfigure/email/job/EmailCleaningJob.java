@@ -16,7 +16,7 @@
 
 package io.jmix.autoconfigure.email.job;
 
-import io.jmix.email.Emailer;
+import io.jmix.email.EmailCleaner;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -25,10 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class EmailCleaningJob implements Job {
 
     @Autowired
-    private Emailer emailer;
+    private EmailCleaner emailCleaner;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        emailer.deleteOldEmails();
+        emailCleaner.deleteOldEmails();
     }
 }

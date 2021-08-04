@@ -1,9 +1,5 @@
 delete from EMAIL_SENDING_ATTACHMENT
-where MESSAGE_ID in (
-    select ID
-    from EMAIL_SENDING_MESSAGE
-    where IMPORTANT = {important} and CREATE_TS < (now() - interval '{days} days')
-);
+where MESSAGE_ID in ({placeHolders});
 
 delete from EMAIL_SENDING_MESSAGE
-where IMPORTANT = {important} and CREATE_TS < (now() - interval '{days} days');
+where ID in ({placeHolders});

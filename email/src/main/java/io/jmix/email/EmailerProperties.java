@@ -23,7 +23,6 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
 @Validated
@@ -40,12 +39,12 @@ public class EmailerProperties {
     boolean sendAllToAdmin;
     boolean useFileStorage;
     String asyncSendingUsername;
-    String useDefaultQuartzSendingConfiguration;
+    String useDefaultQuartzConfiguration;
     String emailSendingCron;
-    String useDefaultQuartzCleaningConfiguration;
+    String useDefaultEmailCleaningQuartzConfiguration;
     @PositiveOrZero
     int maxAgeOfImportantMessages;
-    @Positive
+    @PositiveOrZero
     int maxAgeOfNonImportantMessages;
     String emailCleaningCron;
 
@@ -59,8 +58,8 @@ public class EmailerProperties {
                              @DefaultValue("false") boolean useFileStorage,
                              @DefaultValue("admin") String asyncSendingUsername,
                              @DefaultValue("0 * * * * ?") String emailSendingCron,
-                             @DefaultValue("365") int maxAgeOfImportantMessages,
-                             @DefaultValue("90") int maxAgeOfNonImportantMessages,
+                             int maxAgeOfImportantMessages,
+                             int maxAgeOfNonImportantMessages,
                              @DefaultValue("0 * * * * ?") String emailCleaningCron) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
@@ -156,8 +155,8 @@ public class EmailerProperties {
     /**
      * @return true if default Email Sending quartz scheduling configuration is used. False otherwise
      */
-    public String getUseDefaultQuartzSendingConfiguration() {
-        return useDefaultQuartzSendingConfiguration;
+    public String getUseDefaultQuartzConfiguration() {
+        return useDefaultQuartzConfiguration;
     }
 
     /**
@@ -170,19 +169,21 @@ public class EmailerProperties {
     /**
      * @return true if default Email Cleaning quartz scheduling configuration is used. False otherwise
      */
-    public String getUseDefaultQuartzCleaningConfiguration() {
-        return useDefaultQuartzCleaningConfiguration;
+    public String getUseDefaultEmailCleaningQuartzConfiguration() {
+        return useDefaultEmailCleaningQuartzConfiguration;
     }
 
     /**
-     * @return the maximum age of important messages after which they must be deleted
+     * @return the maximum age (in days) of important messages after which they must be deleted.
+     * Do not specify this property (zero value) if you want forever living messages
      */
     public int getMaxAgeOfImportantMessages() {
         return maxAgeOfImportantMessages;
     }
 
     /**
-     * @return the maximum age of messages after which they must be deleted
+     * @return the maximum age (in days) of messages after which they must be deleted.
+     * Do not specify this property (zero value) if you want forever living messages
      */
     public int getMaxAgeOfNonImportantMessages() {
         return maxAgeOfNonImportantMessages;

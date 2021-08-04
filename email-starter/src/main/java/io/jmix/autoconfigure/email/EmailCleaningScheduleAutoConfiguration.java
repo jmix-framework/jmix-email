@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import(EmailConfiguration.class)
 @ConditionalOnClass(Job.class)
-@ConditionalOnProperty(name = "jmix.email.useDefaultQuartzCleaningConfiguration", matchIfMissing = true)
+@ConditionalOnProperty(name = "jmix.email.useDefaultEmailCleaningQuartzConfiguration")
 public class EmailCleaningScheduleAutoConfiguration {
     private static final Logger log = LoggerFactory.getLogger(EmailSendingScheduleAutoConfiguration.class);
 

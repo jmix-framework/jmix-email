@@ -87,10 +87,4 @@ public interface Emailer {
      * @return short message describing how many emails were sent, or error message
      */
     String processQueuedEmails();
-
-    /**
-     * Deletes old emails and attachments.
-     * For additional information see {@link EmailCleaner}
-     */
-    Integer deleteOldEmails();
 }
