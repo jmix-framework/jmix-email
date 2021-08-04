@@ -34,6 +34,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.*;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -63,6 +64,12 @@ public class EmailTestConfiguration extends CoreSecurityConfiguration {
                 .generateUniqueName(true)
                 .setType(EmbeddedDatabaseType.HSQL)
                 .build();
+    }
+
+    @Bean
+    @Primary
+    JdbcTemplate jdbcTemplate() {
+        return new JdbcTemplate(dataSource());
     }
 
     @Bean
