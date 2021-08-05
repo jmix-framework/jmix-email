@@ -58,8 +58,8 @@ public class EmailerProperties {
                              @DefaultValue("false") boolean useFileStorage,
                              @DefaultValue("admin") String asyncSendingUsername,
                              @DefaultValue("0 * * * * ?") String emailSendingCron,
-                             int maxAgeOfImportantMessages,
-                             int maxAgeOfNonImportantMessages,
+                             @DefaultValue("0") int maxAgeOfImportantMessages,
+                             @DefaultValue("0") int maxAgeOfNonImportantMessages,
                              @DefaultValue("0 * * * * ?") String emailCleaningCron) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
