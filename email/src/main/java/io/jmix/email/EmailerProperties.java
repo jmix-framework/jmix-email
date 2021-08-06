@@ -39,14 +39,15 @@ public class EmailerProperties {
     boolean sendAllToAdmin;
     boolean useFileStorage;
     String asyncSendingUsername;
-    String useDefaultQuartzConfiguration;
+    boolean useDefaultQuartzConfiguration;
     String emailSendingCron;
-    String useDefaultEmailCleaningQuartzConfiguration;
+    boolean useDefaultEmailCleaningQuartzConfiguration;
     @PositiveOrZero
     int maxAgeOfImportantMessages;
     @PositiveOrZero
     int maxAgeOfNonImportantMessages;
     String emailCleaningCron;
+    boolean deleteFromFileStorage;
 
     public EmailerProperties(@DefaultValue("DoNotReply@localhost") String fromAddress,
                              @DefaultValue("2") int scheduledSendingDelayCallCount,
@@ -60,7 +61,8 @@ public class EmailerProperties {
                              @DefaultValue("0 * * * * ?") String emailSendingCron,
                              @DefaultValue("0") int maxAgeOfImportantMessages,
                              @DefaultValue("0") int maxAgeOfNonImportantMessages,
-                             @DefaultValue("0 * * * * ?") String emailCleaningCron) {
+                             @DefaultValue("0 * * * * ?") String emailCleaningCron,
+                             @DefaultValue("false") boolean deleteFromFileStorage) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
         this.messageQueueCapacity = messageQueueCapacity;
@@ -74,6 +76,7 @@ public class EmailerProperties {
         this.maxAgeOfImportantMessages = maxAgeOfImportantMessages;
         this.maxAgeOfNonImportantMessages = maxAgeOfNonImportantMessages;
         this.emailCleaningCron = emailCleaningCron;
+        this.deleteFromFileStorage = deleteFromFileStorage;
     }
 
     /**
@@ -155,7 +158,7 @@ public class EmailerProperties {
     /**
      * @return true if default Email Sending quartz scheduling configuration is used. False otherwise
      */
-    public String getUseDefaultQuartzConfiguration() {
+    public boolean getUseDefaultQuartzConfiguration() {
         return useDefaultQuartzConfiguration;
     }
 
@@ -169,7 +172,7 @@ public class EmailerProperties {
     /**
      * @return true if default Email Cleaning quartz scheduling configuration is used. False otherwise
      */
-    public String getUseDefaultEmailCleaningQuartzConfiguration() {
+    public boolean getUseDefaultEmailCleaningQuartzConfiguration() {
         return useDefaultEmailCleaningQuartzConfiguration;
     }
 
@@ -194,5 +197,12 @@ public class EmailerProperties {
      */
     public String getEmailCleaningCron() {
         return emailCleaningCron;
+    }
+
+    /**
+     * @return true if deleted from file storage is performed while the cleaning scheduler is working
+     */
+    public boolean getDeleteFromFileStorage() {
+        return deleteFromFileStorage;
     }
 }

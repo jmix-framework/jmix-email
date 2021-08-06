@@ -16,11 +16,14 @@
 
 package io.jmix.email.impl;
 
-import io.jmix.core.Resources;
+import io.jmix.core.FetchPlanRepository;
+import io.jmix.core.FileStorage;
+import io.jmix.core.FileStorageLocator;
 import io.jmix.core.TimeSource;
 import io.jmix.data.PersistenceHints;
 import io.jmix.email.EmailCleaner;
 import io.jmix.email.EmailerProperties;
+import io.jmix.email.entity.SendingMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,15 +32,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
 @Component("email_EmailCleaner")
 public class EmailCleanerImpl implements EmailCleaner {
-
-    private static final String PATH_TO_SQL_SCRIPT = "classpath:/io/jmix/email/script/deleteSendingMessages.sql";
 
     @Autowired
     private EmailerProperties emailerProperties;
@@ -46,10 +45,17 @@ public class EmailCleanerImpl implements EmailCleaner {
     private EntityManager entityManager;
 
     @Autowired
-    private Resources resources;
+    private TimeSource timeSource;
 
     @Autowired
-    private TimeSource timeSource;
+    private FetchPlanRepository fetchPlanRepository;
+
+    private FileStorage fileStorage;
+
+    @Autowired
+    public void setFileStorage(FileStorageLocator fileStorageLocator) {
+        this.fileStorage = fileStorageLocator.getDefault();
+    }
 
     @Transactional
     @Override
@@ -58,40 +64,43 @@ public class EmailCleanerImpl implements EmailCleaner {
         int maxAgeOfNonImportantMessages = emailerProperties.getMaxAgeOfNonImportantMessages();
         entityManager.setProperty(PersistenceHints.SOFT_DELETION, false);
 
-        StringBuilder queryStringBuilder = new StringBuilder();
-        String nativeDeleteSqlScript = Objects.requireNonNull(resources.getResourceAsString(PATH_TO_SQL_SCRIPT));
+        int result = 0;
         if (maxAgeOfNonImportantMessages != 0) {
-            List<UUID> ids = entityManager.createQuery("select msg.id from email_SendingMessage msg" +
-                    " where msg.important = false and msg.createTs < :date", UUID.class)
-                    .setParameter("date", Date.from(timeSource.now().minusDays(maxAgeOfNonImportantMessages).toInstant()))
-                    .getResultList();
-            if (!ids.isEmpty()) {
-                String deleteQueryForNonImportantMessages = nativeDeleteSqlScript.replace("{placeHolders}",
-                        ids.stream().map(id -> "'" + id.toString() + "'").collect(Collectors.joining(",")));
-                queryStringBuilder.append(deleteQueryForNonImportantMessages).append("\n");
-            }
+            result += deleteMessages(maxAgeOfNonImportantMessages, false);
         }
 
         if (maxAgeOfImportantMessages != 0) {
-            List<UUID> ids = entityManager.createQuery("select msg.id from email_SendingMessage msg" +
-                    " where msg.important = true and msg.createTs < :date", UUID.class)
-                    .setParameter("date", Date.from(timeSource.now().minusDays(maxAgeOfImportantMessages).toInstant()))
-                    .getResultList();
-            if (!ids.isEmpty()) {
-                String deleteQueryForImportantMessages = nativeDeleteSqlScript.replace("{placeHolders}",
-                        ids.stream().map(id -> "'" + id.toString() + "'").collect(Collectors.joining(",")));
-                queryStringBuilder.append(deleteQueryForImportantMessages);
-            }
+            result += deleteMessages(maxAgeOfImportantMessages, true);
         }
 
-        String queryString = queryStringBuilder.toString().trim();
-        if (queryString.isEmpty()) {
+        return result;
+    }
+
+    private int deleteMessages(int ageOfMessage, boolean important) {
+        List<SendingMessage> messagesToDelete = entityManager.createQuery("select msg from email_SendingMessage msg" +
+                " where msg.important = :important and msg.createTs < :date", SendingMessage.class)
+                .setParameter("important", important)
+                .setParameter("date", Date.from(timeSource.now().minusDays(ageOfMessage).toInstant()))
+                .setHint(PersistenceHints.FETCH_PLAN,
+                        fetchPlanRepository.getFetchPlan(SendingMessage.class, "sendingMessage-with-fs-fetch-plan"))
+                .getResultList();
+        if (emailerProperties.getDeleteFromFileStorage()) {
+            messagesToDelete.forEach(msg -> {
+                msg.getAttachments().stream()
+                        .filter(attachment -> attachment.getContentFile() != null)
+                        .forEach(attachment -> fileStorage.removeFile(attachment.getContentFile()));
+                if (msg.getContentTextFile() != null) {
+                    fileStorage.removeFile(msg.getContentTextFile());
+                }
+            });
+        }
+
+        if (!messagesToDelete.isEmpty()) {
+            return entityManager.createQuery("delete from email_SendingMessage msg where msg.id in :ids", Integer.class)
+                    .setParameter("ids", messagesToDelete.stream().map(SendingMessage::getId).collect(Collectors.toList()))
+                    .executeUpdate();
+        } else {
             return 0;
         }
-        int result = 0;
-        for (String query : queryString.split(";")) {
-            result += entityManager.createNativeQuery(query).executeUpdate();
-        }
-        return result;
     }
 }

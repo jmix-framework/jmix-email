@@ -26,9 +26,12 @@ import io.jmix.core.security.UserRepository;
 import io.jmix.data.DataConfiguration;
 import io.jmix.data.impl.JmixEntityManagerFactoryBean;
 import io.jmix.data.impl.JmixTransactionManager;
+import io.jmix.data.impl.liquibase.JmixLiquibase;
+import io.jmix.data.impl.liquibase.LiquibaseChangeLogProcessor;
 import io.jmix.data.persistence.DbmsSpecifics;
 import io.jmix.eclipselink.EclipselinkConfiguration;
 import io.jmix.email.EmailConfiguration;
+import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.*;
@@ -86,6 +89,14 @@ public class EmailTestConfiguration extends CoreSecurityConfiguration {
     @Primary
     PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
         return new JmixTransactionManager(Stores.MAIN, entityManagerFactory);
+    }
+
+    @Bean
+    public SpringLiquibase liquibase(DataSource dataSource, LiquibaseChangeLogProcessor processor) {
+        JmixLiquibase liquibase = new JmixLiquibase();
+        liquibase.setDataSource(dataSource);
+        liquibase.setChangeLogContent(processor.createMasterChangeLog(Stores.MAIN));
+        return liquibase;
     }
 
     @Bean
