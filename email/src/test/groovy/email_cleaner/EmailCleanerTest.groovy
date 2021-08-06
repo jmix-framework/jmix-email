@@ -16,15 +16,17 @@
 
 package email_cleaner
 
+import io.jmix.core.FileRef
 import io.jmix.core.Metadata
-import io.jmix.core.SaveContext
 import io.jmix.core.TimeSource
 import io.jmix.core.UnconstrainedDataManager
-import io.jmix.email.EmailCleaner
+import io.jmix.data.PersistenceHints
+import io.jmix.email.*
 import io.jmix.email.entity.SendingAttachment
 import io.jmix.email.entity.SendingMessage
 import org.springframework.beans.factory.annotation.Autowired
 import test_support.EmailSpecification
+import test_support.TestFileStorage
 
 class EmailCleanerTest extends EmailSpecification {
     @Autowired
@@ -37,72 +39,116 @@ class EmailCleanerTest extends EmailSpecification {
     UnconstrainedDataManager dataManager
 
     @Autowired
+    EmailerProperties emailerProperties
+
+    @Autowired
     TimeSource timeSource
 
+    @Autowired
+    TestFileStorage fileStorage
+
+    @Autowired
+    EmailDataProvider emailDataProvider
+
+    @Autowired
+    Emailer emailer
+
     def setup() {
+        EmailerConfigPropertiesAccess.setUseFileStorage(emailerProperties, true)
+        EmailerConfigPropertiesAccess.setMaxAgeOfImportantMessages(emailerProperties, 1)
+        EmailerConfigPropertiesAccess.setMaxAgeOfNonImportantMessages(emailerProperties, 1)
         prepareTestData()
     }
 
-    def 'Delete old messages with important messages age = 1 and usual messages age = 1'() {
-        when: 'Nothing to delete'
+    def 'nothing to delete'() {
+        when:
         def amountOfDeletedMessages = emailCleaner.deleteOldEmails()
 
         then:
         amountOfDeletedMessages == 0
+    }
 
-        when: 'All important messages created yesterday'
-        def importantMessagesToDelete = loadAllSendingMessages().stream()
-                .filter(x -> x.important)
-                .peek(x -> x.setCreateTs(Date.from(timeSource.now().minusHours(25).toInstant())))
+    def 'important messages, their attachments and files from fs should be deleted'() {
+        EmailerConfigPropertiesAccess.setDeleteFromFileStorage(emailerProperties, true)
+
+        when:
+        def sendingMessages = loadAllSendingMessages().findAll {it.important}
+        def fileRefs = collectFileRefs(sendingMessages)
+        def importantMessagesToDelete = sendingMessages
+                .findAll { it.important }
+                .each { it -> it.createTs = Date.from(timeSource.now().minusHours(25).toInstant()) }
                 .toArray()
         dataManager.save(importantMessagesToDelete)
-        amountOfDeletedMessages = emailCleaner.deleteOldEmails()
+        emailCleaner.deleteOldEmails()
 
-        then: 'All important messages and their attachments should be deleted'
-        amountOfDeletedMessages == 5
-        loadAllSendingMessages().stream().allMatch(x -> !x.important)
+        then:
+        loadAllSendingMessages().each { !it.important }
+        fileRefs.every { (!fileStorage.fileExists(it)) }
+    }
 
-        when: 'All messages created yesterday'
-        def messagesToDelete = loadAllSendingMessages().stream()
-                .peek(x -> x.setCreateTs(Date.from(timeSource.now().minusHours(25).toInstant())))
+    def 'all messages and their attachments should be deleted, except the files from fs'() {
+        EmailerConfigPropertiesAccess.setDeleteFromFileStorage(emailerProperties, false)
+
+        when:
+        def fileRefs = collectFileRefs(loadAllSendingMessages())
+        def messagesToDelete = loadAllSendingMessages()
+                .each { it.setCreateTs(Date.from(timeSource.now().minusHours(25).toInstant())) }
                 .toArray()
         dataManager.save(messagesToDelete)
-        amountOfDeletedMessages = emailCleaner.deleteOldEmails()
+        emailCleaner.deleteOldEmails()
 
-        then: 'All messages and their attachments should be deleted'
-        amountOfDeletedMessages == 5
+        then:
         loadAllSendingMessages().isEmpty()
+        fileRefs.every { fileStorage.fileExists(it) }
     }
 
     private List<SendingMessage> loadAllSendingMessages() {
-        return dataManager.load(SendingMessage).all().list()
+        return dataManager.load(SendingMessage).all().hint(PersistenceHints.SOFT_DELETION, false).list();
+    }
+
+    private static List<FileRef> collectFileRefs(List<SendingMessage> sendingMessages) {
+        def fileRefs = sendingMessages.collect { it.contentTextFile }
+        fileRefs.addAll(sendingMessages.collect { it.attachments }
+                .flatten()
+                .collect { (it as SendingAttachment).contentFile })
+        return fileRefs
     }
 
     private void prepareTestData() {
-        def entitiesToSave = []
+        def messagesToSend = []
 
-        SendingMessage message1 = metadata.create(SendingMessage)
-        entitiesToSave << message1
-        3.times { entitiesToSave << createSendingAttachment(message1) }
+        EmailInfo emailInfo1 = createEmailInfo(false)
+        addEmailAttachment(emailInfo1)
+        messagesToSend << emailInfo1
 
-        SendingMessage message2 = metadata.create(SendingMessage)
-        message2.important = true
-        entitiesToSave << message2
-        3.times { entitiesToSave << createSendingAttachment(message2) }
+        EmailInfo emailInfo2 = createEmailInfo(true)
+        addEmailAttachment(emailInfo2)
+        messagesToSend << emailInfo2
 
-        SendingMessage message3 = metadata.create(SendingMessage)
-        entitiesToSave << message3
+        EmailInfo emailInfo3 = createEmailInfo(false)
+        messagesToSend << emailInfo3
 
-        SendingMessage message4 = metadata.create(SendingMessage)
-        message4.important = true
-        entitiesToSave << message4
+        EmailInfo emailInfo4 = createEmailInfo(true)
+        messagesToSend << emailInfo4
 
-        dataManager.save(new SaveContext().saving(entitiesToSave))
+        messagesToSend.each { emailer.sendEmailAsync(it as EmailInfo) }
     }
 
-    private SendingAttachment createSendingAttachment(SendingMessage message) {
-        SendingAttachment attachment = metadata.create(SendingAttachment)
-        attachment.message = message
-        return attachment
+    private static EmailInfo createEmailInfo(boolean important) {
+        EmailInfoBuilder
+                .create("address", "subject", "body")
+                .setImportant(important)
+                .build()
+    }
+
+    private static void addEmailAttachment(EmailInfo emailInfo) {
+        List<EmailAttachment> attachments = emailInfo.attachments
+        EmailAttachment emailAttachment = new EmailAttachment("someContent".bytes, "someName")
+        if (attachments == null) {
+            attachments = new ArrayList<>()
+            attachments.add(emailAttachment)
+            emailInfo.attachments = attachments
+        }
+        attachments.add(emailAttachment)
     }
 }
