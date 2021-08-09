@@ -47,7 +47,7 @@ public class EmailerProperties {
     @PositiveOrZero
     int maxAgeOfNonImportantMessages;
     String emailCleaningCron;
-    boolean deleteFromFileStorage;
+    boolean cleanFileStorage;
 
     public EmailerProperties(@DefaultValue("DoNotReply@localhost") String fromAddress,
                              @DefaultValue("2") int scheduledSendingDelayCallCount,
@@ -61,8 +61,8 @@ public class EmailerProperties {
                              @DefaultValue("0 * * * * ?") String emailSendingCron,
                              @DefaultValue("0") int maxAgeOfImportantMessages,
                              @DefaultValue("0") int maxAgeOfNonImportantMessages,
-                             @DefaultValue("0 * * * * ?") String emailCleaningCron,
-                             @DefaultValue("false") boolean deleteFromFileStorage) {
+                             @DefaultValue("0 0 0 1 * ?") String emailCleaningCron,
+                             @DefaultValue("false") boolean cleanFileStorage) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
         this.messageQueueCapacity = messageQueueCapacity;
@@ -76,7 +76,7 @@ public class EmailerProperties {
         this.maxAgeOfImportantMessages = maxAgeOfImportantMessages;
         this.maxAgeOfNonImportantMessages = maxAgeOfNonImportantMessages;
         this.emailCleaningCron = emailCleaningCron;
-        this.deleteFromFileStorage = deleteFromFileStorage;
+        this.cleanFileStorage = cleanFileStorage;
     }
 
     /**
@@ -202,7 +202,7 @@ public class EmailerProperties {
     /**
      * @return true if deleted from file storage is performed while the cleaning scheduler is working
      */
-    public boolean getDeleteFromFileStorage() {
-        return deleteFromFileStorage;
+    public boolean getCleanFileStorage() {
+        return cleanFileStorage;
     }
 }

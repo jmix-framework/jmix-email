@@ -82,9 +82,9 @@ public class EmailCleanerImpl implements EmailCleaner {
                 .setParameter("important", important)
                 .setParameter("date", Date.from(timeSource.now().minusDays(ageOfMessage).toInstant()))
                 .setHint(PersistenceHints.FETCH_PLAN,
-                        fetchPlanRepository.getFetchPlan(SendingMessage.class, "sendingMessage-with-fs-fetch-plan"))
+                        fetchPlanRepository.getFetchPlan(SendingMessage.class, "sendingMessage.deleteFile"))
                 .getResultList();
-        if (emailerProperties.getDeleteFromFileStorage()) {
+        if (emailerProperties.getCleanFileStorage()) {
             messagesToDelete.forEach(msg -> {
                 msg.getAttachments().stream()
                         .filter(attachment -> attachment.getContentFile() != null)

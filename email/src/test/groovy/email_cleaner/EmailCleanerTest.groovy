@@ -69,7 +69,7 @@ class EmailCleanerTest extends EmailSpecification {
     }
 
     def 'important messages, their attachments and files from fs should be deleted'() {
-        EmailerConfigPropertiesAccess.setDeleteFromFileStorage(emailerProperties, true)
+        EmailerConfigPropertiesAccess.setCleanFileStorage(emailerProperties, true)
 
         when:
         def sendingMessages = loadAllSendingMessages().findAll {it.important}
@@ -87,7 +87,7 @@ class EmailCleanerTest extends EmailSpecification {
     }
 
     def 'all messages and their attachments should be deleted, except the files from fs'() {
-        EmailerConfigPropertiesAccess.setDeleteFromFileStorage(emailerProperties, false)
+        EmailerConfigPropertiesAccess.setCleanFileStorage(emailerProperties, false)
 
         when:
         def fileRefs = collectFileRefs(loadAllSendingMessages())

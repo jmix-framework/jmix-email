@@ -44,7 +44,7 @@ public class EmailerConfigPropertiesAccess {
         properties.maxAgeOfNonImportantMessages = maxAgeOfNonImportantMessages;
     }
 
-    public static void setDeleteFromFileStorage(EmailerProperties properties, boolean deleteFromFileStorage) {
-        properties.deleteFromFileStorage = deleteFromFileStorage;
+    public static void setCleanFileStorage(EmailerProperties properties, boolean cleanFileStorage) {
+        properties.cleanFileStorage = cleanFileStorage;
     }
 }
