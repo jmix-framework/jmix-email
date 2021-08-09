@@ -61,7 +61,7 @@ public class EmailerProperties {
                              @DefaultValue("0 * * * * ?") String emailSendingCron,
                              @DefaultValue("0") int maxAgeOfImportantMessages,
                              @DefaultValue("0") int maxAgeOfNonImportantMessages,
-                             @DefaultValue("0 0 0 1 * ?") String emailCleaningCron,
+                             @DefaultValue("0 0 0 * * ?") String emailCleaningCron,
                              @DefaultValue("false") boolean cleanFileStorage) {
         this.fromAddress = fromAddress;
         this.scheduledSendingDelayCallCount = scheduledSendingDelayCallCount;
@@ -178,7 +178,7 @@ public class EmailerProperties {
 
     /**
      * @return the maximum age (in days) of important messages after which they must be deleted.
-     * Do not specify this property (zero value) if you want forever living messages
+     * Zero value (0) means that messages won't be removed
      */
     public int getMaxAgeOfImportantMessages() {
         return maxAgeOfImportantMessages;
@@ -186,7 +186,7 @@ public class EmailerProperties {
 
     /**
      * @return the maximum age (in days) of messages after which they must be deleted.
-     * Do not specify this property (zero value) if you want forever living messages
+     * Zero value (0) means that messages won't be removed
      */
     public int getMaxAgeOfNonImportantMessages() {
         return maxAgeOfNonImportantMessages;
